@@ -185,7 +185,7 @@ abstract contract ERC7683OrderDepositor is IOriginSettler {
         (acrossOrderData, acrossOriginFillerData) = decode(order.orderData, fillerData);
 
         if (
-            acrossOrderData.exclusiveRelayer != address(0) &&
+            acrossOrderData.exclusiveRelayer != bytes32(0) &&
             acrossOrderData.exclusiveRelayer != acrossOriginFillerData.exclusiveRelayer
         ) {
             revert WrongExclusiveRelayer();
@@ -193,9 +193,9 @@ abstract contract ERC7683OrderDepositor is IOriginSettler {
 
         Output[] memory maxSpent = new Output[](1);
         maxSpent[0] = Output({
-            token: _toBytes32(acrossOrderData.outputToken),
+            token: acrossOrderData.outputToken,
             amount: acrossOrderData.outputAmount,
-            recipient: _toBytes32(acrossOrderData.recipient),
+            recipient: acrossOrderData.recipient,
             chainId: acrossOrderData.destinationChainId
         });
 
@@ -207,7 +207,7 @@ abstract contract ERC7683OrderDepositor is IOriginSettler {
         minReceived[0] = Output({
             token: _toBytes32(acrossOrderData.inputToken),
             amount: acrossOrderData.inputAmount,
-            recipient: _toBytes32(acrossOriginFillerData.exclusiveRelayer),
+            recipient: acrossOriginFillerData.exclusiveRelayer,
             chainId: block.chainid
         });
 
@@ -227,7 +227,7 @@ abstract contract ERC7683OrderDepositor is IOriginSettler {
         relayData.message = acrossOrderData.message;
         fillInstructions[0] = FillInstruction({
             destinationChainId: acrossOrderData.destinationChainId,
-            destinationSettler: _toBytes32(_destinationSettler(acrossOrderData.destinationChainId)),
+            destinationSettler: _destinationSettler(acrossOrderData.destinationChainId),
             originData: abi.encode(relayData)
         });
 
@@ -257,9 +257,9 @@ abstract contract ERC7683OrderDepositor is IOriginSettler {
 
         Output[] memory maxSpent = new Output[](1);
         maxSpent[0] = Output({
-            token: _toBytes32(acrossOrderData.outputToken),
+            token: acrossOrderData.outputToken,
             amount: acrossOrderData.outputAmount,
-            recipient: _toBytes32(acrossOrderData.recipient),
+            recipient: acrossOrderData.recipient,
             chainId: acrossOrderData.destinationChainId
         });
 
@@ -271,7 +271,7 @@ abstract contract ERC7683OrderDepositor is IOriginSettler {
         minReceived[0] = Output({
             token: _toBytes32(acrossOrderData.inputToken),
             amount: acrossOrderData.inputAmount,
-            recipient: _toBytes32(acrossOrderData.exclusiveRelayer),
+            recipient: acrossOrderData.exclusiveRelayer,
             chainId: block.chainid
         });
 
@@ -291,7 +291,7 @@ abstract contract ERC7683OrderDepositor is IOriginSettler {
         relayData.message = acrossOrderData.message;
         fillInstructions[0] = FillInstruction({
             destinationChainId: acrossOrderData.destinationChainId,
-            destinationSettler: _toBytes32(_destinationSettler(acrossOrderData.destinationChainId)),
+            destinationSettler: _destinationSettler(acrossOrderData.destinationChainId),
             originData: abi.encode(relayData)
         });
 
@@ -343,13 +343,13 @@ abstract contract ERC7683OrderDepositor is IOriginSettler {
 
     function _callDeposit(
         address depositor,
-        address recipient,
+        bytes32 recipient,
         address inputToken,
-        address outputToken,
+        bytes32 outputToken,
         uint256 inputAmount,
         uint256 outputAmount,
         uint256 destinationChainId,
-        address exclusiveRelayer,
+        bytes32 exclusiveRelayer,
         uint32 quoteTimestamp,
         uint32 fillDeadline,
         uint32 exclusivityDeadline,
@@ -358,5 +358,5 @@ abstract contract ERC7683OrderDepositor is IOriginSettler {
 
     function _currentDepositId() internal view virtual returns (uint32);
 
-    function _destinationSettler(uint256 chainId) internal view virtual returns (address);
+    function _destinationSettler(uint256 chainId) internal view virtual returns (bytes32);
 }

@@ -39,13 +39,13 @@ interface V3SpokePoolInterface {
         // The address that made the deposit on the origin chain.
         address depositor;
         // The recipient address on the destination chain.
-        address recipient;
+        bytes32 recipient;
         // This is the exclusive relayer who can fill the deposit before the exclusivity deadline.
-        address exclusiveRelayer;
+        bytes32 exclusiveRelayer;
         // Token that is deposited on origin chain by depositor.
         address inputToken;
         // Token that is received on destination chain by recipient.
-        address outputToken;
+        bytes32 outputToken;
         // The amount of input token deposited by depositor.
         uint256 inputAmount;
         // The amount of output token to be received by recipient.

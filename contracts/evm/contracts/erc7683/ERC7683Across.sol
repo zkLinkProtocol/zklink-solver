@@ -8,17 +8,17 @@ import { GaslessCrossChainOrder } from "./ERC7683.sol";
 struct AcrossOrderData {
     address inputToken;
     uint256 inputAmount;
-    address outputToken;
+    bytes32 outputToken;
     uint256 outputAmount;
     uint32 destinationChainId;
-    address recipient;
-    address exclusiveRelayer;
+    bytes32 recipient;
+    bytes32 exclusiveRelayer;
     uint32 exclusivityPeriod;
     bytes message;
 }
 
 struct AcrossOriginFillerData {
-    address exclusiveRelayer;
+    bytes32 exclusiveRelayer;
 }
 
 struct AcrossDestinationFillerData {
@@ -29,11 +29,11 @@ bytes constant ACROSS_ORDER_DATA_TYPE = abi.encodePacked(
     "AcrossOrderData(",
     "address inputToken,",
     "uint256 inputAmount,",
-    "address outputToken,",
+    "bytes32 outputToken,",
     "uint256 outputAmount,",
     "uint32 destinationChainId,",
-    "address recipient,",
-    "address exclusiveRelayer,"
+    "bytes32 recipient,",
+    "bytes32 exclusiveRelayer,"
     "uint32 exclusivityPeriod,",
     "bytes message)"
 );
