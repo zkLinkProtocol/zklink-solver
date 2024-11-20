@@ -62,13 +62,6 @@ interface V3SpokePoolInterface {
         bytes message;
     }
 
-    // Contains parameters passed in by someone who wants to execute a slow relay leaf.
-    struct V3SlowFill {
-        V3RelayData relayData;
-        uint256 chainId;
-        uint256 updatedOutputAmount;
-    }
-
     // Contains information about a relay to be sent along with additional information that is not unique to the
     // relay itself but is required to know how to process the relay. For example, "updatedX" fields can be used
     // by the relayer to modify fields of the relay with the depositor's permission, and "repaymentChainId" is specified
@@ -98,7 +91,7 @@ interface V3SpokePoolInterface {
 
     event V3FundsDeposited(
         address inputToken,
-        address outputToken,
+        bytes32 outputToken,
         uint256 inputAmount,
         uint256 outputAmount,
         uint256 indexed destinationChainId,
@@ -107,18 +100,9 @@ interface V3SpokePoolInterface {
         uint32 fillDeadline,
         uint32 exclusivityDeadline,
         address indexed depositor,
-        address recipient,
-        address exclusiveRelayer,
+        bytes32 recipient,
+        bytes32 exclusiveRelayer,
         bytes message
-    );
-
-    event RequestedSpeedUpV3Deposit(
-        uint256 updatedOutputAmount,
-        uint32 indexed depositId,
-        address indexed depositor,
-        address updatedRecipient,
-        bytes updatedMessage,
-        bytes depositorSignature
     );
 
     event FilledV3Relay(
@@ -139,82 +123,26 @@ interface V3SpokePoolInterface {
         V3RelayExecutionEventInfo relayExecutionInfo
     );
 
-    event RequestedV3SlowFill(
-        address inputToken,
-        address outputToken,
-        uint256 inputAmount,
-        uint256 outputAmount,
-        uint256 indexed originChainId,
-        uint32 indexed depositId,
-        uint32 fillDeadline,
-        uint32 exclusivityDeadline,
-        address exclusiveRelayer,
-        address depositor,
-        address recipient,
-        bytes message
-    );
-
     /**************************************
      *              FUNCTIONS             *
      **************************************/
 
     function depositV3(
         address depositor,
-        address recipient,
+        bytes32 recipient,
         address inputToken,
-        address outputToken,
+        bytes32 outputToken,
         uint256 inputAmount,
         uint256 outputAmount,
         uint256 destinationChainId,
-        address exclusiveRelayer,
+        bytes32 exclusiveRelayer,
         uint32 quoteTimestamp,
         uint32 fillDeadline,
         uint32 exclusivityDeadline,
         bytes calldata message
     ) external payable;
 
-    function depositV3Now(
-        address depositor,
-        address recipient,
-        address inputToken,
-        address outputToken,
-        uint256 inputAmount,
-        uint256 outputAmount,
-        uint256 destinationChainId,
-        address exclusiveRelayer,
-        uint32 fillDeadlineOffset,
-        uint32 exclusivityDeadline,
-        bytes calldata message
-    ) external payable;
-
-    function speedUpV3Deposit(
-        address depositor,
-        uint32 depositId,
-        uint256 updatedOutputAmount,
-        address updatedRecipient,
-        bytes calldata updatedMessage,
-        bytes calldata depositorSignature
-    ) external;
-
     function fillV3Relay(V3RelayData calldata relayData, uint256 repaymentChainId) external;
-
-    function fillV3RelayWithUpdatedDeposit(
-        V3RelayData calldata relayData,
-        uint256 repaymentChainId,
-        uint256 updatedOutputAmount,
-        address updatedRecipient,
-        bytes calldata updatedMessage,
-        bytes calldata depositorSignature
-    ) external;
-
-    function requestV3SlowFill(V3RelayData calldata relayData) external;
-
-    function executeV3SlowRelayLeaf(
-        V3SlowFill calldata slowFillLeaf,
-        uint32 rootBundleId,
-        bytes32[] calldata proof
-    ) external;
-
     /**************************************
      *              ERRORS                *
      **************************************/
@@ -222,18 +150,10 @@ interface V3SpokePoolInterface {
     error DisabledRoute();
     error InvalidQuoteTimestamp();
     error InvalidFillDeadline();
-    error InvalidExclusivityDeadline();
     error MsgValueDoesNotMatchInputAmount();
     error NotExclusiveRelayer();
-    error NoSlowFillsInExclusivityWindow();
     error RelayFilled();
-    error InvalidSlowFillRequest();
     error ExpiredFillDeadline();
-    error InvalidMerkleProof();
-    error InvalidChainId();
-    error InvalidMerkleLeaf();
-    error ClaimedMerkleLeaf();
-    error InvalidPayoutAdjustmentPct();
     error WrongERC7683OrderId();
     error LowLevelCallFailed(bytes data);
 }
