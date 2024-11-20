@@ -7,7 +7,7 @@
     "lint": "yarn lint-solidity && yarn lint-js",
     "lint-solidity": "yarn solhint ./contracts/**/*.sol",
     "lint-js": "yarn prettier --list-different **/*.js **/*.ts",
-    "lint-fix": "yarn prettier --write **/*.js **/*.ts ./contracts/**/*.sol"
+    "lint-fix": "yarn prettier --write --plugin=prettier-plugin-solidity **/*.js **/*.ts ./contracts/**/*.sol"
   },
   "dependencies": {
     "@openzeppelin/contracts": "4.9.6",
