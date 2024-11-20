@@ -38,15 +38,6 @@ contract ZKLinkAcross is
     // Permit2 contract for this network.
     IPermit2 public immutable PERMIT2;
 
-    // QUOTE_BEFORE_DEADLINE is subtracted from the deadline to get the quote timestamp.
-    // This is a somewhat arbitrary conversion, but order creators need some way to precompute the quote timestamp.
-    uint256 public immutable QUOTE_BEFORE_DEADLINE;
-
-    // Address of wrappedNativeToken contract for this network. If an origin token matches this, then the caller can
-    // optionally instruct this contract to wrap native tokens when depositing (ie ETH->WETH or MATIC->WMATIC).
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    WETH9Interface public immutable wrappedNativeToken;
-
     // Any deposit quote times greater than or less than this value to the current contract time is blocked. Forces
     // caller to use an approximately "current" realized fee.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -69,14 +60,18 @@ contract ZKLinkAcross is
     // to eliminate any chance of collision between pre and post V3 relay hashes.
     mapping(bytes32 => uint256) public fillStatuses;
 
-    /**
-     * @notice Construct the Permit2Depositor.
-     * @param _permit2 Permit2 contract
-     * @param _quoteBeforeDeadline quoteBeforeDeadline is subtracted from the deadline to get the quote timestamp.
-     */
-    constructor(IPermit2 _permit2, uint256 _quoteBeforeDeadline) {
+    event SetDestinationSettler(
+        uint256 indexed chainId,
+        bytes32 indexed prevDestinationSettler,
+        bytes32 indexed destinationSettler
+    );
+
+    event EnabledDepositRoute(address indexed originToken, uint256 indexed destinationChainId, bool enabled);
+
+    constructor(IPermit2 _permit2, uint32 _depositQuoteTimeBuffer, uint32 _fillDeadlineBuffer) {
         PERMIT2 = _permit2;
-        QUOTE_BEFORE_DEADLINE = _quoteBeforeDeadline;
+        depositQuoteTimeBuffer = _depositQuoteTimeBuffer;
+        fillDeadlineBuffer = _fillDeadlineBuffer;
 
         _disableInitializers();
     }
@@ -91,6 +86,21 @@ contract ZKLinkAcross is
         address newImplementation
     ) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
+    function setDestinationSettler(uint256 destChainId, bytes32 destinationSettler) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        bytes32 prevDestinationSettler = destinationSettlers[destChainId];
+        destinationSettlers[destChainId] = destinationSettler;
+        emit SetDestinationSettler(destChainId, prevDestinationSettler, destinationSettler);
+    }
+
+    function setEnableRoute(
+        address originToken,
+        uint256 destinationChainId,
+        bool enabled
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        enabledDepositRoutes[originToken][destinationChainId] = enabled;
+        emit EnabledDepositRoute(originToken, destinationChainId, enabled);
+    }
+
     /**
      * @notice Open the order on behalf of the user.
      * @dev This will pull in the user's funds and make the order available to be filled.
@@ -102,7 +112,7 @@ contract ZKLinkAcross is
         GaslessCrossChainOrder calldata order,
         bytes calldata signature,
         bytes calldata fillerData
-    ) external {
+    ) external nonReentrant {
         (
             ResolvedCrossChainOrder memory resolvedOrder,
             AcrossOrderData memory acrossOrderData,
@@ -122,7 +132,7 @@ contract ZKLinkAcross is
             acrossOrderData.destinationChainId,
             acrossOriginFillerData.exclusiveRelayer,
             // Note: simplifying assumption to avoid quote timestamps that cause orders to expire before the deadline.
-            SafeCast.toUint32(order.openDeadline - QUOTE_BEFORE_DEADLINE),
+            SafeCast.toUint32(order.openDeadline - depositQuoteTimeBuffer),
             order.fillDeadline,
             acrossOrderData.exclusivityPeriod,
             acrossOrderData.message
@@ -137,7 +147,7 @@ contract ZKLinkAcross is
      * @dev This will pull in the user's funds and make the order available to be filled.
      * @param order the ERC7683 compliant order.
      */
-    function open(OnchainCrossChainOrder calldata order) external {
+    function open(OnchainCrossChainOrder calldata order) external nonReentrant {
         (ResolvedCrossChainOrder memory resolvedOrder, AcrossOrderData memory acrossOrderData) = _resolve(order);
 
         IERC20(acrossOrderData.inputToken).safeTransferFrom(msg.sender, address(this), acrossOrderData.inputAmount);
@@ -165,7 +175,7 @@ contract ZKLinkAcross is
      * @param originFillerData Across-specific fillerData.
      */
     function resolveFor(GaslessCrossChainOrder calldata order, bytes calldata originFillerData)
-    public
+    external
     view
     returns (ResolvedCrossChainOrder memory resolvedOrder)
     {
@@ -177,7 +187,7 @@ contract ZKLinkAcross is
      * @param order the ERC7683 compliant order.
      */
     function resolve(OnchainCrossChainOrder calldata order)
-    public
+    external
     view
     returns (ResolvedCrossChainOrder memory resolvedOrder)
     {
@@ -195,7 +205,7 @@ contract ZKLinkAcross is
         bytes32 orderId,
         bytes calldata originData,
         bytes calldata fillerData
-    ) external {
+    ) external nonReentrant {
         if (keccak256(abi.encode(originData, chainId())) != orderId) {
             revert V3SpokePoolInterface.WrongERC7683OrderId();
         }
@@ -679,20 +689,9 @@ contract ZKLinkAcross is
         // If relay token is wrappedNativeToken then unwrap and send native token.
         address outputToken = _bytes32ToAddress(relayData.outputToken);
         uint256 amountToSend = relayExecution.updatedOutputAmount;
-        if (outputToken == address(wrappedNativeToken)) {
-            // Note: useContractFunds is True if we want to send funds to the recipient directly out of this contract,
-            // otherwise we expect the caller to send funds to the recipient. If useContractFunds is True and the
-            // recipient wants wrappedNativeToken, then we can assume that wrappedNativeToken is already in the
-            // contract, otherwise we'll need the user to send wrappedNativeToken to this contract. Regardless, we'll
-            // need to unwrap it to native token before sending to the user.
-            if (!isSlowFill) IERC20(outputToken).safeTransferFrom(msg.sender, address(this), amountToSend);
-            _unwrapwrappedNativeTokenTo(payable(recipientToSend), amountToSend);
-            // Else, this is a normal ERC20 token. Send to recipient.
-        } else {
-            // Note: Similar to note above, send token directly from the contract to the user in the slow relay case.
-            if (!isSlowFill) IERC20(outputToken).safeTransferFrom(msg.sender, recipientToSend, amountToSend);
-            else IERC20(outputToken).safeTransfer(recipientToSend, amountToSend);
-        }
+        // Note: Similar to note above, send token directly from the contract to the user in the slow relay case.
+        if (!isSlowFill) IERC20(outputToken).safeTransferFrom(msg.sender, recipientToSend, amountToSend);
+        else IERC20(outputToken).safeTransfer(recipientToSend, amountToSend);
 
         bytes memory updatedMessage = relayExecution.updatedMessage;
         if (updatedMessage.length > 0 && recipientToSend.isContract()) {
@@ -715,16 +714,6 @@ contract ZKLinkAcross is
 
     function _getV3RelayHash(V3SpokePoolInterface.V3RelayData memory relayData) private view returns (bytes32) {
         return keccak256(abi.encode(relayData, chainId()));
-    }
-
-    // Unwraps ETH and does a transfer to a recipient address. If the recipient is a smart contract then sends wrappedNativeToken.
-    function _unwrapwrappedNativeTokenTo(address payable to, uint256 amount) internal {
-        if (address(to).isContract()) {
-            IERC20(address(wrappedNativeToken)).safeTransfer(to, amount);
-        } else {
-            wrappedNativeToken.withdraw(amount);
-            AddressLibUpgradeable.sendValue(to, amount);
-        }
     }
 
     function _bytes32ToAddress(bytes32 input) internal pure returns (address) {
