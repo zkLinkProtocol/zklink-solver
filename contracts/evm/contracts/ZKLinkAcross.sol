@@ -34,6 +34,8 @@ contract ZKLinkAcross is
     error WrongOrderDataType();
     error WrongExclusiveRelayer();
 
+    bytes32 public constant FILLER_ROLE = keccak256("FILLER_ROLE");
+
     // Permit2 contract for this network.
     IPermit2 public immutable PERMIT2;
 
@@ -204,7 +206,7 @@ contract ZKLinkAcross is
         bytes32 orderId,
         bytes calldata originData,
         bytes calldata fillerData
-    ) external nonReentrant {
+    ) external nonReentrant onlyRole(FILLER_ROLE) {
         if (keccak256(abi.encode(originData, chainId())) != orderId) {
             revert V3SpokePoolInterface.WrongERC7683OrderId();
         }
@@ -677,9 +679,6 @@ contract ZKLinkAcross is
         // If this is a slow fill, we can't exit early since we still need to send funds out of this contract
         // since there is no "relayer".
         address recipientToSend = relayExecution.updatedRecipient;
-
-        if (msg.sender == recipientToSend) return;
-
         // If relay token is wrappedNativeToken then unwrap and send native token.
         address outputToken = _bytes32ToAddress(relayData.outputToken);
         uint256 amountToSend = relayExecution.updatedOutputAmount;
