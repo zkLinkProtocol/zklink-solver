@@ -389,7 +389,7 @@ contract ZKLinkAcross is
             repaymentChainId: repaymentChainId
         });
 
-        _fillRelayV3(relayExecution, msg.sender, false);
+        _fillRelayV3(relayExecution, msg.sender);
     }
 
     /**
@@ -618,8 +618,7 @@ contract ZKLinkAcross is
     // exclusiveRelayer if passed exclusivityDeadline or if slow fill.
     function _fillRelayV3(
         V3SpokePoolInterface.V3RelayExecutionParams memory relayExecution,
-        address relayer,
-        bool isSlowFill
+        address relayer
     ) internal {
         V3SpokePoolInterface.V3RelayData memory relayData = relayExecution.relay;
 
@@ -633,14 +632,10 @@ contract ZKLinkAcross is
         // is trivially true. We'll emit this value in the FilledV3Relay
         // event to assist the Dataworker in knowing when to return funds back to the HubPool that can no longer
         // be used for a slow fill execution.
-        V3SpokePoolInterface.FillType fillType = isSlowFill
-            ? V3SpokePoolInterface.FillType.SlowFill
-            : (
-            // The following is true if this is a fast fill that was sent after a slow fill request.
-                fillStatuses[relayExecution.relayHash] == uint256(V3SpokePoolInterface.FillStatus.RequestedSlowFill)
-                    ? V3SpokePoolInterface.FillType.ReplacedSlowFill
-                    : V3SpokePoolInterface.FillType.FastFill
-            );
+        V3SpokePoolInterface.FillType fillType = // The following is true if this is a fast fill that was sent after a slow fill request.
+            fillStatuses[relayExecution.relayHash] == uint256(V3SpokePoolInterface.FillStatus.RequestedSlowFill)
+                ? V3SpokePoolInterface.FillType.ReplacedSlowFill
+                : V3SpokePoolInterface.FillType.FastFill;
 
         // @dev This function doesn't support partial fills. Therefore, we associate the relay hash with
         // an enum tracking its fill status. All filled relays, whether slow or fast fills, are set to the Filled
@@ -684,14 +679,13 @@ contract ZKLinkAcross is
         // since there is no "relayer".
         address recipientToSend = relayExecution.updatedRecipient;
 
-        if (msg.sender == recipientToSend && !isSlowFill) return;
+        if (msg.sender == recipientToSend) return;
 
         // If relay token is wrappedNativeToken then unwrap and send native token.
         address outputToken = _bytes32ToAddress(relayData.outputToken);
         uint256 amountToSend = relayExecution.updatedOutputAmount;
         // Note: Similar to note above, send token directly from the contract to the user in the slow relay case.
-        if (!isSlowFill) IERC20(outputToken).safeTransferFrom(msg.sender, recipientToSend, amountToSend);
-        else IERC20(outputToken).safeTransfer(recipientToSend, amountToSend);
+        IERC20(outputToken).safeTransfer(recipientToSend, amountToSend);
 
         bytes memory updatedMessage = relayExecution.updatedMessage;
         if (updatedMessage.length > 0 && recipientToSend.isContract()) {
