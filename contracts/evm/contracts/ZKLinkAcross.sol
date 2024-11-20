@@ -29,7 +29,6 @@ contract ZKLinkAcross is
     using SafeERC20 for IERC20;
     using AddressLibUpgradeable for address;
 
-    error InterfaceNotSupport();
     error WrongSettlementContract();
     error WrongChainId();
     error WrongOrderDataType();
@@ -686,16 +685,6 @@ contract ZKLinkAcross is
         uint256 amountToSend = relayExecution.updatedOutputAmount;
         // Note: Similar to note above, send token directly from the contract to the user in the slow relay case.
         IERC20(outputToken).safeTransfer(recipientToSend, amountToSend);
-
-        bytes memory updatedMessage = relayExecution.updatedMessage;
-        if (updatedMessage.length > 0 && recipientToSend.isContract()) {
-            AcrossMessageHandler(recipientToSend).handleV3AcrossMessage(
-                outputToken,
-                amountToSend,
-                msg.sender,
-                updatedMessage
-            );
-        }
     }
 
     /**
