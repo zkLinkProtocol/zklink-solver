@@ -317,10 +317,10 @@ contract ZKLinkAcross is
 
         FillInstruction[] memory fillInstructions = new FillInstruction[](1);
         V3SpokePoolInterface.V3RelayData memory relayData;
-        relayData.depositor = order.user;
+        relayData.depositor = _addressToBytes32(order.user);
         relayData.recipient = acrossOrderData.recipient;
         relayData.exclusiveRelayer = acrossOriginFillerData.exclusiveRelayer;
-        relayData.inputToken = acrossOrderData.inputToken;
+        relayData.inputToken = _addressToBytes32(acrossOrderData.inputToken);
         relayData.outputToken = acrossOrderData.outputToken;
         relayData.inputAmount = acrossOrderData.inputAmount;
         relayData.outputAmount = acrossOrderData.outputAmount;
@@ -381,10 +381,10 @@ contract ZKLinkAcross is
 
         FillInstruction[] memory fillInstructions = new FillInstruction[](1);
         V3SpokePoolInterface.V3RelayData memory relayData;
-        relayData.depositor = msg.sender;
+        relayData.depositor = _addressToBytes32(msg.sender);
         relayData.recipient = acrossOrderData.recipient;
         relayData.exclusiveRelayer = acrossOrderData.exclusiveRelayer;
-        relayData.inputToken = acrossOrderData.inputToken;
+        relayData.inputToken = _addressToBytes32(acrossOrderData.inputToken);
         relayData.outputToken = acrossOrderData.outputToken;
         relayData.inputAmount = acrossOrderData.inputAmount;
         relayData.outputAmount = acrossOrderData.outputAmount;
@@ -449,8 +449,8 @@ contract ZKLinkAcross is
         return numberOfDeposits;
     }
 
-    function _destinationSettler(uint256 chainId) internal view returns (bytes32) {
-        return destinationSettlers[chainId];
+    function _destinationSettler(uint256 destChainId) internal view returns (bytes32) {
+        return destinationSettlers[destChainId];
     }
 
     // Determine whether the combination of exlcusiveRelayer and exclusivityDeadline implies active exclusivity.
@@ -587,5 +587,9 @@ contract ZKLinkAcross is
 
     function _bytes32ToAddress(bytes32 input) internal pure returns (address) {
         return address(uint160(uint256(input)));
+    }
+
+    function _addressToBytes32(address input) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(input)));
     }
 }

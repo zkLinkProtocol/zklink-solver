@@ -37,13 +37,13 @@ interface V3SpokePoolInterface {
     // completely distinct.
     struct V3RelayData {
         // The address that made the deposit on the origin chain.
-        address depositor;
+        bytes32 depositor;
         // The recipient address on the destination chain.
         bytes32 recipient;
         // This is the exclusive relayer who can fill the deposit before the exclusivity deadline.
         bytes32 exclusiveRelayer;
         // Token that is deposited on origin chain by depositor.
-        address inputToken;
+        bytes32 inputToken;
         // Token that is received on destination chain by recipient.
         bytes32 outputToken;
         // The amount of input token deposited by depositor.
@@ -122,7 +122,7 @@ interface V3SpokePoolInterface {
     );
 
     event FilledV3Relay(
-        address inputToken,
+        bytes32 inputToken,
         address outputToken,
         uint256 inputAmount,
         uint256 outputAmount,
@@ -133,7 +133,7 @@ interface V3SpokePoolInterface {
         uint32 exclusivityDeadline,
         address exclusiveRelayer,
         address indexed relayer,
-        address depositor,
+        bytes32 depositor,
         address recipient,
         bytes message,
         V3RelayExecutionEventInfo relayExecutionInfo
