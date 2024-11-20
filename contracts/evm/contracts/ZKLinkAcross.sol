@@ -218,11 +218,12 @@ contract ZKLinkAcross is
     public
     nonReentrant
     {
+        address exclusiveRelayer = _bytes32ToAddress(relayData.exclusiveRelayer);
         // Exclusivity deadline is inclusive and is the latest timestamp that the exclusive relayer has sole right
         // to fill the relay.
         if (
-            _fillIsExclusive(relayData.exclusiveRelayer, relayData.exclusivityDeadline, uint32(getCurrentTime())) &&
-            relayData.exclusiveRelayer != msg.sender
+            _fillIsExclusive(exclusiveRelayer, relayData.exclusivityDeadline, uint32(getCurrentTime())) &&
+            exclusiveRelayer != msg.sender
         ) {
             revert V3SpokePoolInterface.NotExclusiveRelayer();
         }
@@ -231,7 +232,7 @@ contract ZKLinkAcross is
             relay: relayData,
             relayHash: _getV3RelayHash(relayData),
             updatedOutputAmount: relayData.outputAmount,
-            updatedRecipient: relayData.recipient,
+            updatedRecipient: _bytes32ToAddress(relayData.recipient),
             updatedMessage: relayData.message,
             repaymentChainId: repaymentChainId
         });
@@ -502,7 +503,7 @@ contract ZKLinkAcross is
         // successful.
         emit V3SpokePoolInterface.FilledV3Relay(
             relayData.inputToken,
-            relayData.outputToken,
+            _bytes32ToAddress(relayData.outputToken),
             relayData.inputAmount,
             relayData.outputAmount,
             relayExecution.repaymentChainId,
@@ -510,10 +511,10 @@ contract ZKLinkAcross is
             relayData.depositId,
             relayData.fillDeadline,
             relayData.exclusivityDeadline,
-            relayData.exclusiveRelayer,
+            _bytes32ToAddress(relayData.exclusiveRelayer),
             relayer,
             relayData.depositor,
-            relayData.recipient,
+            _bytes32ToAddress(relayData.recipient),
             relayData.message,
             V3SpokePoolInterface.V3RelayExecutionEventInfo({
                 updatedRecipient: relayExecution.updatedRecipient,
@@ -534,7 +535,7 @@ contract ZKLinkAcross is
         if (msg.sender == recipientToSend && !isSlowFill) return;
 
         // If relay token is wrappedNativeToken then unwrap and send native token.
-        address outputToken = relayData.outputToken;
+        address outputToken = _bytes32ToAddress(relayData.outputToken);
         uint256 amountToSend = relayExecution.updatedOutputAmount;
         if (outputToken == address(wrappedNativeToken)) {
             // Note: useContractFunds is True if we want to send funds to the recipient directly out of this contract,
@@ -582,5 +583,9 @@ contract ZKLinkAcross is
             wrappedNativeToken.withdraw(amount);
             AddressLibUpgradeable.sendValue(to, amount);
         }
+    }
+
+    function _bytes32ToAddress(bytes32 input) internal pure returns (address) {
+        return address(uint160(uint256(input)));
     }
 }
