@@ -1,13 +1,7 @@
-# Sample Hardhat Project
+# ZKLinkAcross evm contracts
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
-
-Try running some of the following tasks:
+## Deploy
 
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
+npx hardhat --network bnb-testnet ignition deploy ./ignition/modules/ZKLinkAcross.ts --parameters ignition/parameters/bnb-testnet.json --verify
 ```

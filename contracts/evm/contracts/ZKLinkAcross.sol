@@ -61,6 +61,11 @@ contract ZKLinkAcross is
     // to eliminate any chance of collision between pre and post V3 relay hashes.
     mapping(bytes32 => uint256) public fillStatuses;
 
+    // Reserve storage slots for future versions of this base contract to add state variables without
+    // affecting the storage layout of child contracts. Decrement the size of __gap whenever state variables
+    // are added. This is at bottom of contract to make sure it's always at the end of storage.
+    uint256[999] private __gap;
+
     event SetDestinationSettler(
         uint256 indexed chainId,
         bytes32 indexed prevDestinationSettler,

@@ -31,6 +31,26 @@ const config: HardhatUserConfig = {
       "contracts/ZKLinkAcross.sol": LARGE_CONTRACT_COMPILER_SETTINGS,
     },
   },
+  networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+    }
+  }
 };
+
+// custom hardhat user config for different net
+if (process.env.NET !== undefined) {
+  const netName = process.env.NET;
+  config.defaultNetwork = netName;
+
+  const netConfig = require(`./etc/${netName}.json`);
+  // @ts-ignore
+  config.networks[netName] = netConfig.network;
+
+  // config contract verify key if exist
+  if (netConfig.etherscan !== undefined) {
+    config.etherscan = netConfig.etherscan;
+  }
+}
 
 export default config;

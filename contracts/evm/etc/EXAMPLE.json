@@ -1,0 +1,12 @@
+{
+  "network": {
+    "url": "https://matic-mumbai.chainstacklabs.com",
+    "accounts": ["YOUR_DEPLOYER_KEY"],
+    "gas": "auto",
+    "gasPrice": "auto",
+    "gasMultiplier": 1
+  },
+  "etherscan": {
+    "apiKey": "YOUR_ETHERSCAN_KEY"
+  }
+}
