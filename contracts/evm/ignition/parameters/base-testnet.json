@@ -1,0 +1,7 @@
+{
+  "ZKLinkAcrossProxyModule": {
+    "permit2": "0x6E253C951A40fAf4032faFbEc19262Cd1531A5F5",
+    "depositQuoteTimeBuffer": 2592000,
+    "fillDeadlineBuffer": 2592000
+  }
+}
