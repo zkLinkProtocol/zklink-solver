@@ -226,6 +226,10 @@ contract ZKLinkAcross is
         _fillV3Relay(relayData, destinationFillerData.repaymentChainId);
     }
 
+    function withdraw(address token, address receipt, uint256 amount) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
+        IERC20(token).safeTransfer(receipt, amount);
+    }
+
     /**
      * @notice Previously, this function allowed the caller to specify the exclusivityDeadline, otherwise known as the
      * as exact timestamp on the destination chain before which only the exclusiveRelayer could fill the deposit. Now,
