@@ -34,11 +34,7 @@ contract MulticallHandler is AcrossMessageHandler, ReentrancyGuard {
     event CallsFailed(Call[] calls, address indexed fallbackRecipient);
 
     // Emitted when there are leftover tokens that are sent to the fallbackRecipient.
-    event DrainedTokens(
-        address indexed recipient,
-        address indexed token,
-        uint256 indexed amount
-    );
+    event DrainedTokens(address indexed recipient, address indexed token, uint256 indexed amount);
 
     // Errors
     error CallReverted(uint256 index, Call[] calls);
@@ -58,12 +54,7 @@ contract MulticallHandler is AcrossMessageHandler, ReentrancyGuard {
      * @param message abi encoded array of Call structs, containing a target, callData, and value for each call that
      * the contract should make.
      */
-    function handleV3AcrossMessage(
-        address token,
-        uint256,
-        address,
-        bytes memory message
-    ) external nonReentrant {
+    function handleV3AcrossMessage(address token, uint256, address, bytes memory message) external nonReentrant {
         Instructions memory instructions = abi.decode(message, (Instructions));
 
         // If there is no fallback recipient, call and revert if the inner call fails.
@@ -73,14 +64,8 @@ contract MulticallHandler is AcrossMessageHandler, ReentrancyGuard {
         }
 
         // Otherwise, try the call and send to the fallback recipient if any tokens are leftover.
-        (bool success, ) = address(this).call(
-            abi.encodeCall(this.attemptCalls, (instructions.calls))
-        );
-        if (!success)
-            emit CallsFailed(
-                instructions.calls,
-                instructions.fallbackRecipient
-            );
+        (bool success, ) = address(this).call(abi.encodeCall(this.attemptCalls, (instructions.calls)));
+        if (!success) emit CallsFailed(instructions.calls, instructions.fallbackRecipient);
 
         // If there are leftover tokens, send them to the fallback recipient regardless of execution success.
         _drainRemainingTokens(token, payable(instructions.fallbackRecipient));
@@ -96,24 +81,16 @@ contract MulticallHandler is AcrossMessageHandler, ReentrancyGuard {
                 revert InvalidCall(i, calls);
             }
 
-            (bool success, ) = call.target.call{value: call.value}(
-                call.callData
-            );
+            (bool success, ) = call.target.call{value: call.value}(call.callData);
             if (!success) revert CallReverted(i, calls);
         }
     }
 
-    function drainLeftoverTokens(
-        address token,
-        address payable destination
-    ) external onlySelf {
+    function drainLeftoverTokens(address token, address payable destination) external onlySelf {
         _drainRemainingTokens(token, destination);
     }
 
-    function _drainRemainingTokens(
-        address token,
-        address payable destination
-    ) internal {
+    function _drainRemainingTokens(address token, address payable destination) internal {
         if (token != address(0)) {
             // ERC20 token.
             uint256 amount = IERC20(token).balanceOf(address(this));

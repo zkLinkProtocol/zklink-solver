@@ -131,9 +131,7 @@ interface IOriginSettler {
     /// @dev Intended to improve standardized integration of various order types and settlement contracts
     /// @param order The OnchainCrossChainOrder definition
     /// @return ResolvedCrossChainOrder hydrated order data including the inputs and outputs of the order
-    function resolve(
-        OnchainCrossChainOrder calldata order
-    ) external view returns (ResolvedCrossChainOrder memory);
+    function resolve(OnchainCrossChainOrder calldata order) external view returns (ResolvedCrossChainOrder memory);
 }
 
 /// @title IDestinationSettler
@@ -143,9 +141,5 @@ interface IDestinationSettler {
     /// @param orderId Unique order identifier for this order
     /// @param originData Data emitted on the origin to parameterize the fill
     /// @param fillerData Data provided by the filler to inform the fill or express their preferences
-    function fill(
-        bytes32 orderId,
-        bytes calldata originData,
-        bytes calldata fillerData
-    ) external;
+    function fill(bytes32 orderId, bytes calldata originData, bytes calldata fillerData) external;
 }
