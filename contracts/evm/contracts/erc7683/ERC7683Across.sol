@@ -38,7 +38,9 @@ bytes constant ACROSS_ORDER_DATA_TYPE = abi.encodePacked(
     "bytes message)"
 );
 
-bytes32 constant ACROSS_ORDER_DATA_TYPE_HASH = keccak256(ACROSS_ORDER_DATA_TYPE);
+bytes32 constant ACROSS_ORDER_DATA_TYPE_HASH = keccak256(
+    ACROSS_ORDER_DATA_TYPE
+);
 
 /**
  * @notice ERC7683Permit2Lib knows how to process a particular type of external Permit2Order so that it can be used in Across.
@@ -61,9 +63,11 @@ library ERC7683Permit2Lib {
 
     bytes internal constant CROSS_CHAIN_ORDER_EIP712_TYPE =
         abi.encodePacked(CROSS_CHAIN_ORDER_TYPE, ACROSS_ORDER_DATA_TYPE);
-    bytes32 internal constant CROSS_CHAIN_ORDER_TYPE_HASH = keccak256(CROSS_CHAIN_ORDER_EIP712_TYPE);
+    bytes32 internal constant CROSS_CHAIN_ORDER_TYPE_HASH =
+        keccak256(CROSS_CHAIN_ORDER_EIP712_TYPE);
 
-    string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
+    string private constant TOKEN_PERMISSIONS_TYPE =
+        "TokenPermissions(address token,uint256 amount)";
     string internal constant PERMIT2_ORDER_TYPE =
         string(
             abi.encodePacked(
@@ -75,7 +79,10 @@ library ERC7683Permit2Lib {
         );
 
     // Hashes an order to get an order hash. Needed for permit2.
-    function hashOrder(GaslessCrossChainOrder memory order, bytes32 orderDataHash) internal pure returns (bytes32) {
+    function hashOrder(
+        GaslessCrossChainOrder memory order,
+        bytes32 orderDataHash
+    ) internal pure returns (bytes32) {
         return
             keccak256(
                 abi.encode(
@@ -91,7 +98,9 @@ library ERC7683Permit2Lib {
             );
     }
 
-    function hashOrderData(AcrossOrderData memory orderData) internal pure returns (bytes32) {
+    function hashOrderData(
+        AcrossOrderData memory orderData
+    ) internal pure returns (bytes32) {
         return
             keccak256(
                 abi.encode(
