@@ -12,8 +12,8 @@ npx hardhat --network bnb-testnet ignition deploy ./ignition/modules/ZKLinkAcros
 
 | Chain        | Chain Id | Address                                                      |
 | ------------ | -------- | ------------------------------------------------------------ |
-| BNB Test     | 97       | [0x2dc391cc5835523D16Bc59730166ad18181dE290](https://testnet.bscscan.com/address/0x7393Ad72e87A0Ec51Bc9fCB783DBc8F24FE63847) |
-| BASE Sepolia | 84532    | [0xcF941e772ad8787cF57DFF4418e24bFA4e47D756](https://sepolia.basescan.org/address/0xd1Cd760135F6f58b6466B95651a97eFcF52Ab2C3) |
+| BNB Test     | 97       | [0x7393Ad72e87A0Ec51Bc9fCB783DBc8F24FE63847](https://testnet.bscscan.com/address/0x7393Ad72e87A0Ec51Bc9fCB783DBc8F24FE63847) |
+| BASE Sepolia | 84532    | [0xd1Cd760135F6f58b6466B95651a97eFcF52Ab2C3](https://sepolia.basescan.org/address/0xd1Cd760135F6f58b6466B95651a97eFcF52Ab2C3) |
 
 ## ERC20 Token
 
