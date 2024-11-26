@@ -1,9 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ClientService } from './chainClient/client.service';
+import { Open } from './type';
 
 @Injectable()
-export class RelayerService {
+export class RelayerService implements OnModuleInit {
   constructor(private clientService: ClientService) {}
+
+  async onModuleInit() {
+    this.bootstrap();
+  }
 
   async bootstrap() {
     // start watching events
@@ -12,32 +17,22 @@ export class RelayerService {
 
   async whatchEvents() {
     const stop = false;
+    // watch logs for new events from the support origin chain
+    const clients = this.clientService.getClients();
     while (!stop) {
-      // watch logs for new events from the support origin chain
-      const clients = this.clientService.getClients();
-
       await Promise.all(
-        clients.map(async ([, client]) => {
-          const events = await client.watch();
+        clients.map(async (client) => {
+          const orders: Open[] = await client.watch();
 
           // and relay them to the destination chain
-          this.relayEvents(events);
+          for (const order of orders) {
+            const destinationClient = this.clientService.getClient(
+              order.resolvedOrder.fillInstructions[0].destinationChainId,
+            );
+            await destinationClient.fillSingle(order);
+          }
         }),
       );
     }
-  }
-
-  async relayEvents(events: any[]) {
-    // relay events to the destination chain
-    const destinationChainId = 2;
-    const destinationClient =
-      await this.clientService.getClient(destinationChainId);
-    destinationClient.relay(events);
-  }
-
-  async waitFor(seconds: number) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, seconds * 1000);
-    });
   }
 }
