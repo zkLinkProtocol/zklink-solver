@@ -28,8 +28,6 @@ async function main() {
     .option('--deposit-id <deposit-id>')
     .option('--fill-deadline <fill-deadline>', 'The fill deadline')
     .option('--exclusivity-deadline <exclusivity-deadline>', 'The exclusivity deadline')
-    .option('--input-token-decimals <input-token-decimals>', 'The input token decimals', '18')
-    .option('--output-token-decimals <output-token-decimals>', 'The input token decimals', '18')
     .action(async cmd => {
       const provider = new JsonRpcProvider(cmd.rpcUrl);
       const filler = new Wallet(cmd.privateKey, provider);
@@ -43,9 +41,9 @@ async function main() {
         recipient: addressToBytes32(cmd.recipient),
         exclusiveRelayer: addressToBytes32(cmd.exclusiveRelayer),
         inputToken: addressToBytes32(cmd.inputToken),
-        inputAmount: parseUnits(cmd.inputAmount, Number(cmd.inputTokenDecimals)),
+        inputAmount: BigInt(cmd.inputAmount),
         outputToken: addressToBytes32(cmd.outputToken),
-        outputAmount: parseUnits(cmd.outputAmount, Number(cmd.outputTokenDecimals)),
+        outputAmount: BigInt(cmd.outputAmount),
         originChainId: cmd.originChainId,
         depositId: cmd.depositId,
         fillDeadline: cmd.fillDeadline,
