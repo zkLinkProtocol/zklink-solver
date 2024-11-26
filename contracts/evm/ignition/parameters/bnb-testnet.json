@@ -3,5 +3,10 @@
     "permit2": "0xac66a04fef113be1c1429a48c1da34b10011a9d1",
     "depositQuoteTimeBuffer": 2592000,
     "fillDeadlineBuffer": 2592000
+  },
+  "ZKLinkAcrossTargetModule": {
+    "permit2": "0xac66a04fef113be1c1429a48c1da34b10011a9d1",
+    "depositQuoteTimeBuffer": 2592000,
+    "fillDeadlineBuffer": 2592000
   }
 }

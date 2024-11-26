@@ -33,8 +33,14 @@ contract ZKLinkAcross is
     error WrongChainId();
     error WrongOrderDataType();
     error WrongExclusiveRelayer();
+    error InvalidExclusiveRelayer();
+    error InsufficientBalance();
+    error InvalidAddress();
 
     bytes32 public constant FILLER_ROLE = keccak256("FILLER_ROLE");
+    // One year in seconds. If `exclusivityParameter` is set to a value less than this, then the emitted
+    // exclusivityDeadline in a deposit event will be set to the current time plus this value.
+    uint32 public constant MAX_EXCLUSIVITY_PERIOD_SECONDS = 31_536_000;
 
     // Permit2 contract for this network.
     IPermit2 public immutable PERMIT2;
@@ -72,9 +78,17 @@ contract ZKLinkAcross is
         bytes32 indexed destinationSettler
     );
 
-    event EnabledDepositRoute(address indexed originToken, uint256 indexed destinationChainId, bool enabled);
+    event EnabledDepositRoute(
+        address indexed originToken,
+        uint256 indexed destinationChainId,
+        bool enabled
+    );
 
-    constructor(IPermit2 _permit2, uint32 _depositQuoteTimeBuffer, uint32 _fillDeadlineBuffer) {
+    constructor(
+        IPermit2 _permit2,
+        uint32 _depositQuoteTimeBuffer,
+        uint32 _fillDeadlineBuffer
+    ) {
         PERMIT2 = _permit2;
         depositQuoteTimeBuffer = _depositQuoteTimeBuffer;
         fillDeadlineBuffer = _fillDeadlineBuffer;
@@ -92,10 +106,17 @@ contract ZKLinkAcross is
         address newImplementation
     ) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
-    function setDestinationSettler(uint256 destChainId, bytes32 destinationSettler) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setDestinationSettler(
+        uint256 destChainId,
+        bytes32 destinationSettler
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         bytes32 prevDestinationSettler = destinationSettlers[destChainId];
         destinationSettlers[destChainId] = destinationSettler;
-        emit SetDestinationSettler(destChainId, prevDestinationSettler, destinationSettler);
+        emit SetDestinationSettler(
+            destChainId,
+            prevDestinationSettler,
+            destinationSettler
+        );
     }
 
     function setEnableRoute(
@@ -144,7 +165,15 @@ contract ZKLinkAcross is
             acrossOrderData.message
         );
 
-        emit Open(keccak256(resolvedOrder.fillInstructions[0].originData), resolvedOrder);
+        emit Open(
+            keccak256(
+                abi.encode(
+                    resolvedOrder.fillInstructions[0].originData,
+                    resolvedOrder.fillInstructions[0].destinationChainId
+                )
+            ),
+            resolvedOrder
+        );
     }
 
     /**
@@ -154,11 +183,19 @@ contract ZKLinkAcross is
      * @param order the ERC7683 compliant order.
      */
     function open(OnchainCrossChainOrder calldata order) external nonReentrant {
-        (ResolvedCrossChainOrder memory resolvedOrder, AcrossOrderData memory acrossOrderData) = _resolve(order);
+        (
+            ResolvedCrossChainOrder memory resolvedOrder,
+            AcrossOrderData memory acrossOrderData
+        ) = _resolve(order);
 
-        IERC20(acrossOrderData.inputToken).safeTransferFrom(msg.sender, address(this), acrossOrderData.inputAmount);
+        IERC20(acrossOrderData.inputToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            acrossOrderData.inputAmount
+        );
 
-        _callDeposit(msg.sender,
+        _callDeposit(
+            msg.sender,
             acrossOrderData.recipient,
             acrossOrderData.inputToken,
             acrossOrderData.outputToken,
@@ -170,9 +207,18 @@ contract ZKLinkAcross is
             SafeCast.toUint32(block.timestamp),
             order.fillDeadline,
             acrossOrderData.exclusivityPeriod,
-            acrossOrderData.message);
+            acrossOrderData.message
+        );
 
-        emit Open(keccak256(resolvedOrder.fillInstructions[0].originData), resolvedOrder);
+        emit Open(
+            keccak256(
+                abi.encode(
+                    resolvedOrder.fillInstructions[0].originData,
+                    resolvedOrder.fillInstructions[0].destinationChainId
+                )
+            ),
+            resolvedOrder
+        );
     }
 
     /**
@@ -180,11 +226,10 @@ contract ZKLinkAcross is
      * @param order the ERC-7683 compliant order.
      * @param originFillerData Across-specific fillerData.
      */
-    function resolveFor(GaslessCrossChainOrder calldata order, bytes calldata originFillerData)
-    external
-    view
-    returns (ResolvedCrossChainOrder memory resolvedOrder)
-    {
+    function resolveFor(
+        GaslessCrossChainOrder calldata order,
+        bytes calldata originFillerData
+    ) external view returns (ResolvedCrossChainOrder memory resolvedOrder) {
         (resolvedOrder, , ) = _resolveFor(order, originFillerData);
     }
 
@@ -192,11 +237,9 @@ contract ZKLinkAcross is
      * @notice Constructs a ResolvedOrder from a CrossChainOrder.
      * @param order the ERC7683 compliant order.
      */
-    function resolve(OnchainCrossChainOrder calldata order)
-    external
-    view
-    returns (ResolvedCrossChainOrder memory resolvedOrder)
-    {
+    function resolve(
+        OnchainCrossChainOrder calldata order
+    ) external view returns (ResolvedCrossChainOrder memory resolvedOrder) {
         (resolvedOrder, ) = _resolve(order);
     }
 
@@ -217,13 +260,29 @@ contract ZKLinkAcross is
         }
 
         // Ensure that the call is not malformed. If the call is malformed, abi.decode will fail.
-        V3SpokePoolInterface.V3RelayData memory relayData = abi.decode(originData, (V3SpokePoolInterface.V3RelayData));
+        V3SpokePoolInterface.V3RelayData memory relayData = abi.decode(
+            originData,
+            (V3SpokePoolInterface.V3RelayData)
+        );
         AcrossDestinationFillerData memory destinationFillerData = abi.decode(
             fillerData,
             (AcrossDestinationFillerData)
         );
 
         _fillV3Relay(relayData, destinationFillerData.repaymentChainId);
+    }
+
+    function withdraw(
+        address token,
+        address receipt,
+        uint256 amount
+    ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        if (amount > balance) {
+            revert InsufficientBalance();
+        }
+        if (receipt == address(0)) revert InvalidAddress();
+        IERC20(token).safeTransfer(receipt, amount);
     }
 
     /**
@@ -292,7 +351,8 @@ contract ZKLinkAcross is
     ) internal {
         // Check that deposit route is enabled for the input token. There are no checks required for the output token
         // which is pulled from the relayer at fill time and passed through this contract atomically to the recipient.
-        if (!enabledDepositRoutes[inputToken][destinationChainId]) revert V3SpokePoolInterface.DisabledRoute();
+        if (!enabledDepositRoutes[inputToken][destinationChainId])
+            revert V3SpokePoolInterface.DisabledRoute();
 
         // Require that quoteTimestamp has a maximum age so that depositors pay an LP fee based on recent HubPool usage.
         // It is assumed that cross-chain timestamps are normally loosely in-sync, but clock drift can occur. If the
@@ -303,7 +363,8 @@ contract ZKLinkAcross is
 
         // slither-disable-next-line timestamp
         uint256 currentTime = getCurrentTime();
-        if (currentTime - quoteTimestamp > depositQuoteTimeBuffer) revert V3SpokePoolInterface.InvalidQuoteTimestamp();
+        if (currentTime - quoteTimestamp > depositQuoteTimeBuffer)
+            revert V3SpokePoolInterface.InvalidQuoteTimestamp();
 
         // fillDeadline is relative to the destination chain.
         // Don’t allow fillDeadline to be more than several bundles into the future.
@@ -312,7 +373,22 @@ contract ZKLinkAcross is
         // chain time keeping and this chain's time keeping are out of sync but is not really a practical hurdle
         // unless they are significantly out of sync or the depositor is setting very short fill deadlines. This latter
         // situation won't be a problem for honest users.
-        if (fillDeadline < currentTime || fillDeadline > currentTime + fillDeadlineBuffer) revert V3SpokePoolInterface.InvalidFillDeadline();
+        if (
+            fillDeadline < currentTime ||
+            fillDeadline > currentTime + fillDeadlineBuffer
+        ) revert V3SpokePoolInterface.InvalidFillDeadline();
+
+        uint32 exclusivityDeadline = exclusivityPeriod;
+        if (exclusivityDeadline > 0) {
+            if (exclusivityDeadline <= MAX_EXCLUSIVITY_PERIOD_SECONDS) {
+                exclusivityDeadline += uint32(currentTime);
+            }
+
+            // As a safety measure, prevent caller from inadvertently locking funds during exclusivity period
+            //  by forcing them to specify an exclusive relayer.
+            if (exclusiveRelayer == bytes32(0))
+                revert InvalidExclusiveRelayer();
+        }
 
         emit V3SpokePoolInterface.V3FundsDeposited(
             inputToken,
@@ -324,7 +400,7 @@ contract ZKLinkAcross is
             numberOfDeposits++,
             quoteTimestamp,
             fillDeadline,
-            uint32(currentTime) + exclusivityPeriod,
+            exclusivityDeadline,
             depositor,
             recipient,
             exclusiveRelayer,
@@ -373,27 +449,35 @@ contract ZKLinkAcross is
      * @param repaymentChainId Chain of SpokePool where relayer wants to be refunded after the challenge window has
      * passed. Will receive inputAmount of the equivalent token to inputToken on the repayment chain.
      */
-    function _fillV3Relay(V3SpokePoolInterface.V3RelayData memory relayData, uint256 repaymentChainId)
-    internal
-    {
-        address exclusiveRelayer = _bytes32ToAddress(relayData.exclusiveRelayer);
+    function _fillV3Relay(
+        V3SpokePoolInterface.V3RelayData memory relayData,
+        uint256 repaymentChainId
+    ) internal {
+        address exclusiveRelayer = _bytes32ToAddress(
+            relayData.exclusiveRelayer
+        );
         // Exclusivity deadline is inclusive and is the latest timestamp that the exclusive relayer has sole right
         // to fill the relay.
         if (
-            _fillIsExclusive(exclusiveRelayer, relayData.exclusivityDeadline, uint32(getCurrentTime())) &&
-            exclusiveRelayer != msg.sender
+            _fillIsExclusive(
+                exclusiveRelayer,
+                relayData.exclusivityDeadline,
+                uint32(getCurrentTime())
+            ) && exclusiveRelayer != msg.sender
         ) {
             revert V3SpokePoolInterface.NotExclusiveRelayer();
         }
 
-        V3SpokePoolInterface.V3RelayExecutionParams memory relayExecution = V3SpokePoolInterface.V3RelayExecutionParams({
-            relay: relayData,
-            relayHash: _getV3RelayHash(relayData),
-            updatedOutputAmount: relayData.outputAmount,
-            updatedRecipient: _bytes32ToAddress(relayData.recipient),
-            updatedMessage: relayData.message,
-            repaymentChainId: repaymentChainId
-        });
+        V3SpokePoolInterface.V3RelayExecutionParams
+            memory relayExecution = V3SpokePoolInterface
+                .V3RelayExecutionParams({
+                    relay: relayData,
+                    relayHash: _getV3RelayHash(relayData),
+                    updatedOutputAmount: relayData.outputAmount,
+                    updatedRecipient: _bytes32ToAddress(relayData.recipient),
+                    updatedMessage: relayData.message,
+                    repaymentChainId: repaymentChainId
+                });
 
         _fillRelayV3(relayExecution, msg.sender);
     }
@@ -405,12 +489,18 @@ contract ZKLinkAcross is
      * @return acrossOrderData decoded AcrossOrderData.
      * @return acrossOriginFillerData decoded AcrossOriginFillerData.
      */
-    function decode(bytes memory orderData, bytes memory fillerData)
-    public
-    pure
-    returns (AcrossOrderData memory, AcrossOriginFillerData memory)
+    function decode(
+        bytes memory orderData,
+        bytes memory fillerData
+    )
+        public
+        pure
+        returns (AcrossOrderData memory, AcrossOriginFillerData memory)
     {
-        return (abi.decode(orderData, (AcrossOrderData)), abi.decode(fillerData, (AcrossOriginFillerData)));
+        return (
+            abi.decode(orderData, (AcrossOrderData)),
+            abi.decode(fillerData, (AcrossOriginFillerData))
+        );
     }
 
     /**
@@ -421,14 +511,17 @@ contract ZKLinkAcross is
         return SafeCast.toUint32(block.timestamp); // solhint-disable-line not-rely-on-time
     }
 
-    function _resolveFor(GaslessCrossChainOrder calldata order, bytes calldata fillerData)
-    internal
-    view
-    returns (
-        ResolvedCrossChainOrder memory resolvedOrder,
-        AcrossOrderData memory acrossOrderData,
-        AcrossOriginFillerData memory acrossOriginFillerData
+    function _resolveFor(
+        GaslessCrossChainOrder calldata order,
+        bytes calldata fillerData
     )
+        internal
+        view
+        returns (
+            ResolvedCrossChainOrder memory resolvedOrder,
+            AcrossOrderData memory acrossOrderData,
+            AcrossOriginFillerData memory acrossOriginFillerData
+        )
     {
         // Ensure that order was intended to be settled by Across.
         if (order.originSettler != address(this)) {
@@ -444,11 +537,15 @@ contract ZKLinkAcross is
         }
 
         // Extract Across-specific params.
-        (acrossOrderData, acrossOriginFillerData) = decode(order.orderData, fillerData);
+        (acrossOrderData, acrossOriginFillerData) = decode(
+            order.orderData,
+            fillerData
+        );
 
         if (
             acrossOrderData.exclusiveRelayer != bytes32(0) &&
-            acrossOrderData.exclusiveRelayer != acrossOriginFillerData.exclusiveRelayer
+            acrossOrderData.exclusiveRelayer !=
+            acrossOriginFillerData.exclusiveRelayer
         ) {
             revert WrongExclusiveRelayer();
         }
@@ -489,7 +586,9 @@ contract ZKLinkAcross is
         relayData.message = acrossOrderData.message;
         fillInstructions[0] = FillInstruction({
             destinationChainId: acrossOrderData.destinationChainId,
-            destinationSettler: _destinationSettler(acrossOrderData.destinationChainId),
+            destinationSettler: _destinationSettler(
+                acrossOrderData.destinationChainId
+            ),
             originData: abi.encode(relayData)
         });
 
@@ -501,14 +600,21 @@ contract ZKLinkAcross is
             minReceived: minReceived,
             maxSpent: maxSpent,
             fillInstructions: fillInstructions,
-            orderId: keccak256(abi.encode(relayData, acrossOrderData.destinationChainId))
+            orderId: keccak256(
+                abi.encode(relayData, acrossOrderData.destinationChainId)
+            )
         });
     }
 
-    function _resolve(OnchainCrossChainOrder calldata order)
-    internal
-    view
-    returns (ResolvedCrossChainOrder memory resolvedOrder, AcrossOrderData memory acrossOrderData)
+    function _resolve(
+        OnchainCrossChainOrder calldata order
+    )
+        internal
+        view
+        returns (
+            ResolvedCrossChainOrder memory resolvedOrder,
+            AcrossOrderData memory acrossOrderData
+        )
     {
         if (order.orderDataType != ACROSS_ORDER_DATA_TYPE_HASH) {
             revert WrongOrderDataType();
@@ -553,7 +659,9 @@ contract ZKLinkAcross is
         relayData.message = acrossOrderData.message;
         fillInstructions[0] = FillInstruction({
             destinationChainId: acrossOrderData.destinationChainId,
-            destinationSettler: _destinationSettler(acrossOrderData.destinationChainId),
+            destinationSettler: _destinationSettler(
+                acrossOrderData.destinationChainId
+            ),
             originData: abi.encode(relayData)
         });
 
@@ -565,7 +673,9 @@ contract ZKLinkAcross is
             minReceived: minReceived,
             maxSpent: maxSpent,
             fillInstructions: fillInstructions,
-            orderId: keccak256(abi.encode(relayData, acrossOrderData.destinationChainId))
+            orderId: keccak256(
+                abi.encode(relayData, acrossOrderData.destinationChainId)
+            )
         });
     }
 
@@ -574,26 +684,32 @@ contract ZKLinkAcross is
         AcrossOrderData memory acrossOrderData,
         bytes memory signature
     ) internal {
-        IPermit2.PermitTransferFrom memory permit = IPermit2.PermitTransferFrom({
-            permitted: IPermit2.TokenPermissions({
-            token: acrossOrderData.inputToken,
-            amount: acrossOrderData.inputAmount
-        }),
-            nonce: order.nonce,
-            deadline: order.openDeadline
-        });
+        IPermit2.PermitTransferFrom memory permit = IPermit2
+            .PermitTransferFrom({
+                permitted: IPermit2.TokenPermissions({
+                    token: acrossOrderData.inputToken,
+                    amount: acrossOrderData.inputAmount
+                }),
+                nonce: order.nonce,
+                deadline: order.openDeadline
+            });
 
-        IPermit2.SignatureTransferDetails memory signatureTransferDetails = IPermit2.SignatureTransferDetails({
-            to: address(this),
-            requestedAmount: acrossOrderData.inputAmount
-        });
+        IPermit2.SignatureTransferDetails
+            memory signatureTransferDetails = IPermit2
+                .SignatureTransferDetails({
+                    to: address(this),
+                    requestedAmount: acrossOrderData.inputAmount
+                });
 
         // Pull user funds.
         PERMIT2.permitWitnessTransferFrom(
             permit,
             signatureTransferDetails,
             order.user,
-            ERC7683Permit2Lib.hashOrder(order, ERC7683Permit2Lib.hashOrderData(acrossOrderData)), // witness data hash
+            ERC7683Permit2Lib.hashOrder(
+                order,
+                ERC7683Permit2Lib.hashOrderData(acrossOrderData)
+            ), // witness data hash
             ERC7683Permit2Lib.PERMIT2_ORDER_TYPE, // witness data type string
             signature
         );
@@ -607,7 +723,9 @@ contract ZKLinkAcross is
         return numberOfDeposits;
     }
 
-    function _destinationSettler(uint256 destChainId) internal view returns (bytes32) {
+    function _destinationSettler(
+        uint256 destChainId
+    ) internal view returns (bytes32) {
         return destinationSettlers[destChainId];
     }
 
@@ -617,7 +735,9 @@ contract ZKLinkAcross is
         uint32 exclusivityDeadline,
         uint32 currentTime
     ) internal pure returns (bool) {
-        return exclusivityDeadline >= currentTime && exclusiveRelayer != address(0);
+        return
+            exclusivityDeadline >= currentTime &&
+            exclusiveRelayer != address(0);
     }
 
     // @param relayer: relayer who is actually credited as filling this deposit. Can be different from
@@ -626,9 +746,11 @@ contract ZKLinkAcross is
         V3SpokePoolInterface.V3RelayExecutionParams memory relayExecution,
         address relayer
     ) internal {
-        V3SpokePoolInterface.V3RelayData memory relayData = relayExecution.relay;
+        V3SpokePoolInterface.V3RelayData memory relayData = relayExecution
+            .relay;
 
-        if (relayData.fillDeadline < getCurrentTime()) revert V3SpokePoolInterface.ExpiredFillDeadline();
+        if (relayData.fillDeadline < getCurrentTime())
+            revert V3SpokePoolInterface.ExpiredFillDeadline();
 
         bytes32 relayHash = relayExecution.relayHash;
 
@@ -638,10 +760,11 @@ contract ZKLinkAcross is
         // is trivially true. We'll emit this value in the FilledV3Relay
         // event to assist the Dataworker in knowing when to return funds back to the HubPool that can no longer
         // be used for a slow fill execution.
-        V3SpokePoolInterface.FillType fillType = // The following is true if this is a fast fill that was sent after a slow fill request.
-            fillStatuses[relayExecution.relayHash] == uint256(V3SpokePoolInterface.FillStatus.RequestedSlowFill)
-                ? V3SpokePoolInterface.FillType.ReplacedSlowFill
-                : V3SpokePoolInterface.FillType.FastFill;
+        V3SpokePoolInterface.FillType fillType = fillStatuses[ // The following is true if this is a fast fill that was sent after a slow fill request.
+            relayExecution.relayHash
+        ] == uint256(V3SpokePoolInterface.FillStatus.RequestedSlowFill)
+            ? V3SpokePoolInterface.FillType.ReplacedSlowFill
+            : V3SpokePoolInterface.FillType.FastFill;
 
         // @dev This function doesn't support partial fills. Therefore, we associate the relay hash with
         // an enum tracking its fill status. All filled relays, whether slow or fast fills, are set to the Filled
@@ -649,8 +772,13 @@ contract ZKLinkAcross is
         // we can include a bool in the FilledV3Relay event making it easy for the dataworker to compute if this
         // fill was a fast fill that replaced a slow fill and therefore this SpokePool has excess funds that it
         // needs to send back to the HubPool.
-        if (fillStatuses[relayHash] == uint256(V3SpokePoolInterface.FillStatus.Filled)) revert V3SpokePoolInterface.RelayFilled();
-        fillStatuses[relayHash] = uint256(V3SpokePoolInterface.FillStatus.Filled);
+        if (
+            fillStatuses[relayHash] ==
+            uint256(V3SpokePoolInterface.FillStatus.Filled)
+        ) revert V3SpokePoolInterface.RelayFilled();
+        fillStatuses[relayHash] = uint256(
+            V3SpokePoolInterface.FillStatus.Filled
+        );
 
         // @dev Before returning early, emit events to assist the dataworker in being able to know which fills were
         // successful.
@@ -699,7 +827,9 @@ contract ZKLinkAcross is
         return block.chainid;
     }
 
-    function _getV3RelayHash(V3SpokePoolInterface.V3RelayData memory relayData) private view returns (bytes32) {
+    function _getV3RelayHash(
+        V3SpokePoolInterface.V3RelayData memory relayData
+    ) private view returns (bytes32) {
         return keccak256(abi.encode(relayData, chainId()));
     }
 

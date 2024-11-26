@@ -142,10 +142,7 @@ interface V3SpokePoolInterface {
         bytes calldata message
     ) external payable;
 
-    function fillV3Relay(
-        V3RelayData calldata relayData,
-        uint256 repaymentChainId
-    ) external;
+    function fillV3Relay(V3RelayData calldata relayData, uint256 repaymentChainId) external;
     /**************************************
      *              ERRORS                *
      **************************************/
