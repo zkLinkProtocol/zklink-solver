@@ -45,6 +45,22 @@ $ yarn run start:dev
 $ yarn run start:prod
 ```
 
+## Requirements
+
+Ensure the <u>_data_</u> directory is writable
+The application requires the <u>_data_</u> directory to have proper write permissions for saving necessary files.
+
+Ensure the <u>_data_</u> directory exists and is set as writable.
+
+To Set Write Permissions:
+On Unix-based systems, you can use the following commands:
+
+```bash
+mkdir -p data           # Create the data directory if it doesn't exist
+chmod 775 data          # Grant read, write, and execute permissions
+chown -R $USER:$USER data  # Set the directory owner to the current user
+```
+
 ## Test
 
 ```bash
