@@ -32,6 +32,21 @@ export const zklinkAcrossChainAbi = [
   },
   {
     inputs: [],
+    name: 'InsufficientBalance',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'InvalidAddress',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'InvalidExclusiveRelayer',
+    type: 'error',
+  },
+  {
+    inputs: [],
     name: 'InvalidFillDeadline',
     type: 'error',
   },
@@ -605,6 +620,19 @@ export const zklinkAcrossChainAbi = [
         internalType: 'bytes32',
         name: '',
         type: 'bytes32',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'MAX_EXCLUSIVITY_PERIOD_SECONDS',
+    outputs: [
+      {
+        internalType: 'uint32',
+        name: '',
+        type: 'uint32',
       },
     ],
     stateMutability: 'view',
@@ -1514,6 +1542,29 @@ export const zklinkAcrossChainAbi = [
     name: 'upgradeToAndCall',
     outputs: [],
     stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'token',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
+        name: 'receipt',
+        type: 'address',
+      },
+      {
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+    ],
+    name: 'withdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
     type: 'function',
   },
 ];

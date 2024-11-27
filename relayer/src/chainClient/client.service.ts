@@ -4,33 +4,26 @@
 import { Injectable } from '@nestjs/common';
 import { Evm } from './evm';
 import { ClientInterface } from './client.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ClientService {
   private clients: Map<number, ClientInterface> = new Map();
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     // create clients for all supported chains
-    const supportChains = [97, 84532];
-    const rpcUrls = [
-      'https://endpoints.omniatech.io/v1/bsc/testnet/public',
-      'https://base-sepolia.blockpi.network/v1/rpc/public',
-    ];
-    const contractAddresses = [
-      '0xb94474abf18b215281969b8300d3066497f5024d',
-      '0x66f4166e79cf480512f8b2178a287d7db0a71efd',
-    ];
-    if (
-      supportChains.length !== rpcUrls.length ||
-      supportChains.length !== contractAddresses.length
-    ) {
-      throw new Error('Invalid configuration for chain clients');
-    }
+    const supportChains = this.configService.get('support_chains');
 
-    supportChains.forEach((chainId, index) => {
+    supportChains.forEach((item) => {
       this.clients.set(
-        chainId,
-        new Evm(rpcUrls[index], contractAddresses[index]),
+        item.chain_id,
+        new Evm(
+          item.chain_id,
+          item.rpc_url,
+          item.contract_address,
+          item.start_block_number,
+          item.confirm_blocks,
+        ),
       );
     });
   }
@@ -45,3 +38,6 @@ export class ClientService {
     return Array.from(this.clients).map(([, client]) => client);
   }
 }
+
+// 23
+// 999947

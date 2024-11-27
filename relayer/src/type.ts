@@ -55,7 +55,7 @@ type FillInstruction = {
 
 type Output = {
   token: string;
-  amount: string;
+  amount: bigint;
   recipient: string;
   chainId: number;
 };
@@ -119,11 +119,50 @@ export type V3RelayData = {
   exclusiveRelayer: string;
   inputToken: string;
   outputToken: string;
-  inputAmount: string;
-  outputAmount: string;
+  inputAmount: bigint;
+  outputAmount: bigint;
   originChainId: number;
   depositId: number;
   fillDeadline: number;
   exclusivityDeadline: number;
+  message: string;
+};
+
+export type WatchEvent = {
+  orderId: string;
+  destinationChainId: number;
+  order: V3RelayData;
+};
+
+/**
+ * event V3FundsDeposited(
+        address inputToken,
+        bytes32 outputToken,
+        uint256 inputAmount,
+        uint256 outputAmount,
+        uint256 indexed destinationChainId,
+        uint32 indexed depositId,
+        uint32 quoteTimestamp,
+        uint32 fillDeadline,
+        uint32 exclusivityDeadline,
+        address indexed depositor,
+        bytes32 recipient,
+        bytes32 exclusiveRelayer,
+        bytes message
+    );
+ */
+export type V3FundsDeposited = {
+  inputToken: string;
+  outputToken: string;
+  inputAmount: bigint;
+  outputAmount: bigint;
+  destinationChainId: number;
+  depositId: number;
+  quoteTimestamp: number;
+  fillDeadline: number;
+  exclusivityDeadline: number;
+  depositor: string;
+  recipient: string;
+  exclusiveRelayer: string;
   message: string;
 };
