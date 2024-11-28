@@ -38,6 +38,3 @@ export class ClientService {
     return Array.from(this.clients).map(([, client]) => client);
   }
 }
-
-// 23
-// 999947

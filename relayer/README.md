@@ -61,18 +61,58 @@ chmod 775 data          # Grant read, write, and execute permissions
 chown -R $USER:$USER data  # Set the directory owner to the current user
 ```
 
-## Test
+## Environment Configuration
 
-```bash
-# unit tests
-$ yarn run test
+This application uses several environment variables to configure the supported chains, RPC endpoints, contract addresses, and more. Below are the available configuration options:
 
-# e2e tests
-$ yarn run test:e2e
+Configuration File: _.env_
 
-# test coverage
-$ yarn run test:cov
+```env
+# Supported Chains
+SUPPORT_CHAINIDS=97, 84532
+
+# RPC URLs for the chains
+CHANIDS_RPC=https://bsc-testnet-rpc.publicnode.com, https://sepolia.base.org
+
+# Contract Addresses deployed on the respective chains
+CONTRACT_ADDRESS=0x7393Ad72e87A0Ec51Bc9fCB783DBc8F24FE63847, 0xd1Cd760135F6f58b6466B95651a97eFcF52Ab2C3
+
+# Starting block numbers for each chain
+STRART_BLOCK_NUMBER=45940422, 18388180
+
+# Number of block confirmations for each chain
+CONFIRM_BLOCKs=80, 120
+
+# Filler private key for the operations
+FILLER_PK=your_private_key_here
+
 ```
+
+### Explanation of the Configurations:
+
+#### SUPPORT_CHAINIDS
+
+A comma-separated list of supported chain IDs that the application will interact with.
+
+#### CHANIDS_RPC
+
+A comma-separated list of RPC URLs for the chains. These URLs are used for querying the chain's state.
+
+#### CONTRACT_ADDRESS
+
+A comma-separated list of across contract addresses deployed on the supported chains. The application interacts with these contracts for cross-chain operations.
+
+#### STRART_BLOCK_NUMBER
+
+A comma-separated list of starting block numbers for each chain. These are the blocks from which the application will start monitoring.
+
+#### CONFIRM_BLOCKs
+
+A comma-separated list of the number of block confirmations required before considering a transaction as confirmed on each chain.
+
+#### FILLER_PK
+
+The private key of the filler wallet used for transactions. Important: Keep this key secure and do not expose it in public repositories.
 
 ## Support
 
