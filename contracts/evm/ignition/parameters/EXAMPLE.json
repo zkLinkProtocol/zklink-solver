@@ -1,0 +1,12 @@
+{
+  "ZKLinkAcrossProxyModule": {
+    "permit2": "Permit2 address",
+    "depositQuoteTimeBuffer": 2592000,
+    "fillDeadlineBuffer": 2592000
+  },
+  "ZKLinkAcrossUpgradeModule": {
+    "permit2": "Permit2 address",
+    "depositQuoteTimeBuffer": 2592000,
+    "fillDeadlineBuffer": 2592000
+  }
+}
