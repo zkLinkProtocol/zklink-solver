@@ -3,7 +3,7 @@
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const ZKLinkAcrossProxyModule = buildModule("ZKLinkAcrossProxyModule", (m) => {
+export const ZKLinkAcrossProxyModule = buildModule("ZKLinkAcrossProxyModule", (m) => {
   // Deploy the implementation contract
   const permit2 = m.getParameter("permit2");
   const depositQuoteTimeBuffer = m.getParameter("depositQuoteTimeBuffer");
