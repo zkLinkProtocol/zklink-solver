@@ -1,4 +1,19 @@
-# ZKLinkAcross evm contracts
+# zkLink-solver evm contracts
+
+## ZKLinkAcross Contract Overview
+
+The `ZKLinkAcross` contract is a core component of the zkLink-solver system, designed to facilitate cross-chain token transfers using the ERC7683 standard. It leverages the UUPS (Universal Upgradeable Proxy Standard) pattern for upgradeability and integrates with OpenZeppelin's Access Control and Reentrancy Guard for enhanced security and role management.
+
+### Key Features:
+- **Cross-Chain Transfers**: Supports opening and filling cross-chain orders, allowing users to transfer tokens between different blockchain networks.
+- **Permit2 Integration**: Utilizes the Permit2 standard for gasless transactions, enabling users to authorize token transfers without needing to send a separate approval transaction.
+- **Role-Based Access Control**: Implements a robust access control mechanism, allowing only authorized roles to perform critical operations like setting destination settlers and enabling deposit routes.
+- **Security Measures**: Includes reentrancy protection and various checks to ensure the integrity and security of cross-chain operations.
+
+### Usage:
+The contract provides functions to open orders on behalf of users (`openFor`) or directly by users (`open`), resolve orders, and fill orders on the destination chain. It also supports administrative functions to manage deposit routes and destination settlers.
+
+For more detailed information on how to interact with the `ZKLinkAcross` contract, refer to the contract's source code and the provided command-line scripts in the `scripts` directory.
 
 ## Deploy
 1. clone repo
