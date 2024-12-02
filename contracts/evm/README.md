@@ -30,7 +30,7 @@ cp ignition/parameters/EXAMPLE.json ignition/parameters/networkName.json
 
 6. deploy
 ```shell
-NET=base-testnet npx hardhat --network bnb-testnet ignition deploy ./ignition/modules/ZKLinkAcross.ts --parameters ignition/parameters/bnb-testnet.json --verify
+NET=bnb-testnet npx hardhat --network bnb-testnet ignition deploy ./ignition/modules/ZKLinkAcross.ts --parameters ignition/parameters/bnb-testnet.json --verify
 ```
 
 ## Deployed contracts
