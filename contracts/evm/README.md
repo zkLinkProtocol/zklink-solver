@@ -39,15 +39,17 @@ NET=bnb-testnet npx hardhat --network bnb-testnet ignition deploy ./ignition/mod
 
 | Chain        | Chain Id | Address                                                      |
 | ------------ | -------- | ------------------------------------------------------------ |
-| BNB Test     | 97       | [0x7393Ad72e87A0Ec51Bc9fCB783DBc8F24FE63847](https://testnet.bscscan.com/address/0x7393Ad72e87A0Ec51Bc9fCB783DBc8F24FE63847) |
-| BASE Sepolia | 84532    | [0xd1Cd760135F6f58b6466B95651a97eFcF52Ab2C3](https://sepolia.basescan.org/address/0xd1Cd760135F6f58b6466B95651a97eFcF52Ab2C3) |
+| BSC Mainnet  | 56       | [0x94F2EbE929FE948f960908ec57e5D7792fAcAc07](https://bscscan.com/address/0x94F2EbE929FE948f960908ec57e5D7792fAcAc07) |
+| Base Mainnet | 8453     | [0x7Ae0563553008a45d91555f66B2Ab34800A74040](https://basescan.org/address/0x7Ae0563553008a45d91555f66B2Ab34800A74040) |
+| BSC Test     | 97       | [0x7393Ad72e87A0Ec51Bc9fCB783DBc8F24FE63847](https://testnet.bscscan.com/address/0x7393Ad72e87A0Ec51Bc9fCB783DBc8F24FE63847) |
+| Base Sepolia | 84532    | [0xd1Cd760135F6f58b6466B95651a97eFcF52Ab2C3](https://sepolia.basescan.org/address/0xd1Cd760135F6f58b6466B95651a97eFcF52Ab2C3) |
 
 ### ERC20 Token
 
 | Chain        | Symbol | Address                                                      |
 | ------------ | ------ | ------------------------------------------------------------ |
-| BNB Test     | ZKL    | [0xb94474abf18b215281969b8300d3066497f5024d](https://testnet.bscscan.com/address/0xb94474abf18b215281969b8300d3066497f5024d) |
-| BASE Sepolia | ZKL    | [0x66f4166e79cf480512f8b2178a287d7db0a71efd](https://sepolia.basescan.org/address/0x66f4166e79cf480512f8b2178a287d7db0a71efd) |
+| BSC Test     | ZKL    | [0xb94474abf18b215281969b8300d3066497f5024d](https://testnet.bscscan.com/address/0xb94474abf18b215281969b8300d3066497f5024d) |
+| Base Sepolia | ZKL    | [0x66f4166e79cf480512f8b2178a287d7db0a71efd](https://sepolia.basescan.org/address/0x66f4166e79cf480512f8b2178a287d7db0a71efd) |
 
 ## Usage
 
@@ -91,7 +93,7 @@ ts-node scripts/open.ts \
   --output-amount "1.0"
 ```
 
-This example creates an order to transfer 1.0 ZKL token from BNB Test network to BASE Sepolia network.
+This example creates an order to transfer 1.0 ZKL token from BSC Test network to Base Sepolia network.
 
 #### Notes
 - Make sure you have sufficient token balance and native tokens for gas
